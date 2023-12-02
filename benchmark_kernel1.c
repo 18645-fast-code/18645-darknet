@@ -65,6 +65,76 @@ void benchmark(layerTest l)
     free(g);     // Free allocated memory
 }
 
+// Kernel size 4 * 8 with more interleaving
+// This requires 8 output registers
+void change_activation_kernel_v4(double *l_output, double *g, double *a_avg, double alpha)
+{
+    // 16 registers
+    // 8 input registers
+    // 1 temporary register to hold alpha
+    // 8 output registers (reuse)
+    __m256d r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16;
+    r16 = _mm256_broadcast_sd(&alpha);
+
+    // Row 1 & Row 2, LOAD
+    // Row 1
+    r15 = _mm256_loadu_pd(g);
+    r14 = _mm256_loadu_pd(a_avg);
+    r13 = _mm256_loadu_pd(g + 4);
+    r12 = _mm256_loadu_pd(a_avg + 4);
+    r1 = _mm256_loadu_pd(l_output);
+    r2 = _mm256_loadu_pd(l_output + 4);
+
+    // Row 2
+    r11 = _mm256_loadu_pd(g + 8);
+    r10 = _mm256_loadu_pd(a_avg + 8);
+    r9 = _mm256_loadu_pd(g + 12);
+    r8 = _mm256_loadu_pd(a_avg + 12);
+    r3 = _mm256_loadu_pd(l_output + 8);
+    r4 = _mm256_loadu_pd(l_output + 12);
+
+    // Parallel all the muls
+    r15 = _mm256_mul_pd(r15, r16);
+    r13 = _mm256_mul_pd(r13, r16);
+    r11 = _mm256_mul_pd(r11, r16);
+    r9 = _mm256_mul_pd(r9, r16);
+
+    // Do FMAs
+    r1 = _mm256_fmadd_pd(r15, r14, r1);
+    r2 = _mm256_fmadd_pd(r13, r12, r2);
+    r3 = _mm256_fmadd_pd(r11, r10, r3);
+    r4 = _mm256_fmadd_pd(r9, r8, r4);
+
+    // Row 3 & Row 4, LOAD
+    // Row 3
+    r15 = _mm256_loadu_pd(g + 16);
+    r14 = _mm256_loadu_pd(a_avg + 16);
+    r13 = _mm256_loadu_pd(g + 20);
+    r12 = _mm256_loadu_pd(a_avg + 20);
+    r5 = _mm256_loadu_pd(l_output + 16);
+    r6 = _mm256_loadu_pd(l_output + 20);
+
+    // Row 4
+    r11 = _mm256_loadu_pd(g + 24);
+    r10 = _mm256_loadu_pd(a_avg + 24);
+    r9 = _mm256_loadu_pd(g + 28);
+    r8 = _mm256_loadu_pd(a_avg + 28);
+    r7 = _mm256_loadu_pd(l_output + 24);
+    r8 = _mm256_loadu_pd(l_output + 28);
+
+    // Parallel all the muls
+    r15 = _mm256_mul_pd(r15, r16);
+    r13 = _mm256_mul_pd(r13, r16);
+    r11 = _mm256_mul_pd(r11, r16);
+    r9 = _mm256_mul_pd(r9, r16);
+
+    // FMAs
+    r5 = _mm256_fmadd_pd(r15, r14, r5);
+    r6 = _mm256_fmadd_pd(r15, r14, r6);
+    r7 = _mm256_fmadd_pd(r13, r12, r7);
+    r8 = _mm256_fmadd_pd(r11, r10, r8);
+}
+
 // Kernel size 8 * 8
 void change_activation_kernel_v3(double *l_output, double *g, double *a_avg, double alpha)
 {
@@ -446,7 +516,7 @@ void benchmark_kernel1()
     for (int i = 0; i < iterations; ++i)
     {
         t0 = rdtsc();
-        change_activation_kernel_v3(l_output, g, a_avg, alpha);
+        change_activation_kernel_v4(l_output, g, a_avg, alpha);
         t1 = rdtsc();
         t_total += (t1 - t0);
     }
