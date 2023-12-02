@@ -133,6 +133,16 @@ void change_activation_kernel_v4(double *l_output, double *g, double *a_avg, dou
     r6 = _mm256_fmadd_pd(r15, r14, r6);
     r7 = _mm256_fmadd_pd(r13, r12, r7);
     r8 = _mm256_fmadd_pd(r11, r10, r8);
+
+    // Store
+    _mm256_storeu_pd(l_output, r1);
+    _mm256_storeu_pd(l_output + 4, r2);
+    _mm256_storeu_pd(l_output + 8, r3);
+    _mm256_storeu_pd(l_output + 12, r4);
+    _mm256_storeu_pd(l_output + 16, r5);
+    _mm256_storeu_pd(l_output + 20, r6);
+    _mm256_storeu_pd(l_output + 24, r7);
+    _mm256_storeu_pd(l_output + 28, r8);
 }
 
 // Kernel size 8 * 8
