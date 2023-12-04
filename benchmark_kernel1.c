@@ -65,11 +65,11 @@ void benchmark(layerTest l)
     free(g);     // Free allocated memory
 }
 
-
-// Kernel v5
-void change_activation_kernel_v5(double *l_output, double *g, double *a_avg, double alpha)
+// Kernel v6 48
+void change_activation_kernel_v6(double *l_output, double *g, double *a_avg, double alpha)
 {
     // 16 registers
+    // 8 output registers
     __m256d r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16;
     r16 = _mm256_broadcast_sd(&alpha);
 
@@ -93,8 +93,8 @@ void change_activation_kernel_v5(double *l_output, double *g, double *a_avg, dou
     r2 = _mm256_loadu_pd(l_output + 4);
     r7 = _mm256_loadu_pd(a_avg + 8);
     r3 = _mm256_loadu_pd(l_output + 8);
-    r6 =  _mm256_loadu_pd(a_avg + 12);
-    r4 =  _mm256_loadu_pd(l_output + 12);
+    r6 = _mm256_loadu_pd(a_avg + 12);
+    r4 = _mm256_loadu_pd(l_output + 12);
 
     r1 = _mm256_fmadd_pd(r15, r9, r1);
     r2 = _mm256_fmadd_pd(r14, r8, r2);
@@ -110,7 +110,112 @@ void change_activation_kernel_v5(double *l_output, double *g, double *a_avg, dou
 
     r13 = _mm256_mul_pd(r13, r16);
     r12 = _mm256_mul_pd(r12, r16);
-    
+
+    r5 = _mm256_fmadd_pd(r11, r15, r5);
+    r6 = _mm256_fmadd_pd(r10, r14, r6);
+
+    r15 = _mm256_loadu_pd(g + 32);
+    r14 = _mm256_loadu_pd(g + 36);
+
+    r15 = _mm256_mul_pd(r15, r16);
+    r14 = _mm256_mul_pd(r14, r16);
+
+    r11 = _mm256_loadu_pd(a_avg + 24);
+    r7 = _mm256_loadu_pd(l_output + 24);
+    r10 = _mm256_loadu_pd(a_avg + 28);
+    r8 = _mm256_loadu_pd(l_output + 28);
+
+    r7 = _mm256_fmadd_pd(r13, r11, r7);
+    r8 = _mm256_fmadd_pd(r12, r10, r8);
+
+    r13 = _mm256_loadu_pd(g + 40);
+    r12 = _mm256_loadu_pd(g + 44);
+
+    r13 = _mm256_mul_pd(r13, r16);
+    r12 = _mm256_mul_pd(r12, r16);
+
+    r11 = _mm256_loadu_pd(a_avg + 32);
+
+    r9 = _mm256_loadu_pd(l_output + 32);
+    r9 = _mm256_fmadd_pd(r15, r11, r9);
+
+    r15 = _mm256_loadu_pd(a_avg + 36);
+    r10 = _mm256_loadu_pd(l_output + 36);
+    r10 = _mm256_fmadd_pd(r14, r15, r10);
+
+    r14 = _mm256_loadu_pd(a_avg + 40);
+    r11 = _mm256_loadu_pd(l_output + 40);
+    r11 = _mm256_fmadd_pd(r13, r14, r11);
+
+    r15 = _mm256_loadu_pd(a_avg + 44);
+    r14 = _mm256_loadu_pd(l_output + 44);
+    r12 = _mm256_fmadd_pd(r12, r15, r14);
+
+    // Not free r13, r12, r1-r10, r16
+    // Free r14, r15
+
+    // Store
+    _mm256_storeu_pd(l_output, r1);
+    _mm256_storeu_pd(l_output + 4, r2);
+    _mm256_storeu_pd(l_output + 8, r3);
+    _mm256_storeu_pd(l_output + 12, r4);
+    _mm256_storeu_pd(l_output + 16, r5);
+    _mm256_storeu_pd(l_output + 20, r6);
+    _mm256_storeu_pd(l_output + 24, r7);
+    _mm256_storeu_pd(l_output + 28, r8);
+    _mm256_storeu_pd(l_output + 32, r8);
+    _mm256_storeu_pd(l_output + 36, r8);
+    _mm256_storeu_pd(l_output + 40, r8);
+    _mm256_storeu_pd(l_output + 44, r8);
+}
+
+// Kernel v5
+// Kernel size 32
+void change_activation_kernel_v5(double *l_output, double *g, double *a_avg, double alpha)
+{
+    // 16 registers
+    // 8 output registers
+    __m256d r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16;
+    r16 = _mm256_broadcast_sd(&alpha);
+
+    r15 = _mm256_loadu_pd(g);
+    r14 = _mm256_loadu_pd(g + 4);
+    r13 = _mm256_loadu_pd(g + 8);
+    r12 = _mm256_loadu_pd(g + 12);
+    r11 = _mm256_loadu_pd(g + 16);
+    r10 = _mm256_loadu_pd(g + 20);
+
+    r15 = _mm256_mul_pd(r15, r16);
+    r14 = _mm256_mul_pd(r14, r16);
+    r13 = _mm256_mul_pd(r13, r16);
+    r12 = _mm256_mul_pd(r12, r16);
+    r11 = _mm256_mul_pd(r11, r16);
+    r10 = _mm256_mul_pd(r10, r16);
+
+    r9 = _mm256_loadu_pd(a_avg);
+    r1 = _mm256_loadu_pd(l_output);
+    r8 = _mm256_loadu_pd(a_avg + 4);
+    r2 = _mm256_loadu_pd(l_output + 4);
+    r7 = _mm256_loadu_pd(a_avg + 8);
+    r3 = _mm256_loadu_pd(l_output + 8);
+    r6 = _mm256_loadu_pd(a_avg + 12);
+    r4 = _mm256_loadu_pd(l_output + 12);
+
+    r1 = _mm256_fmadd_pd(r15, r9, r1);
+    r2 = _mm256_fmadd_pd(r14, r8, r2);
+    r3 = _mm256_fmadd_pd(r13, r7, r3);
+    r4 = _mm256_fmadd_pd(r12, r6, r4);
+
+    r15 = _mm256_loadu_pd(a_avg + 16);
+    r5 = _mm256_loadu_pd(l_output + 16);
+    r14 = _mm256_loadu_pd(a_avg + 20);
+    r6 = _mm256_loadu_pd(l_output + 20);
+    r13 = _mm256_loadu_pd(g + 24);
+    r12 = _mm256_loadu_pd(g + 28);
+
+    r13 = _mm256_mul_pd(r13, r16);
+    r12 = _mm256_mul_pd(r12, r16);
+
     r5 = _mm256_fmadd_pd(r11, r15, r5);
     r6 = _mm256_fmadd_pd(r10, r14, r6);
 
@@ -594,13 +699,13 @@ void benchmark_kernel1()
     for (int i = 0; i < iterations; ++i)
     {
         t0 = rdtsc();
-        change_activation_kernel_v5(l_output, g, a_avg, alpha);
+        change_activation_kernel_v6(l_output, g, a_avg, alpha);
         t1 = rdtsc();
         t_total += (t1 - t0);
     }
 
-    double total_flops = 3.0 * size * iterations;
-    printf("performance is %lf FLOPS per cycle\n", total_flops / ((double)(t_total)));
+    double total_flops = 2.0 * size * iterations;
+    printf("performance is %lf FLOPS per cycle\n", total_flops / ((double)t_total));
 
     free(l_output);
     free(g);
