@@ -225,8 +225,6 @@ int main(int argc, char **argv)
     int outputMatrixSize = inputMatrixSize - 2;
     int kernelSize = 3;
 
-    printf("Driver initializing\n");
-
     double *input, *output, *filter;
 
     posix_memalign((void **)&input, 64, inputMatrixSize * inputMatrixSize * sizeof(double));
